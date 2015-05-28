@@ -29,8 +29,9 @@ SEXP asSEXP(const matrix<Type> &a)
    return val;
 }
 
+// Report vector of numeric types: AD<double>, AD<AD<double> > etc.
 template<class Type>
-SEXP asSEXP(const vector<Type> &a) 
+SEXP asSEXP(const vector<AD<Type> > &a)
 {
   int size = a.size();
   SEXP val;
@@ -40,6 +41,29 @@ SEXP asSEXP(const vector<Type> &a)
   UNPROTECT(1);
   return val;
 }
+// Report vector of numeric types: double
+SEXP asSEXP(const vector<double> &a)
+{
+  int size = a.size();
+  SEXP val;
+  PROTECT(val = allocVector(REALSXP,size));
+  double *p = REAL(val);
+  for (int i = 0; i < size; i++) p[i] = asDouble(a[i]);
+  UNPROTECT(1);
+  return val;
+}
+// Report vector of anything else.
+template<class Type>
+SEXP asSEXP(const vector<Type> &a)
+{
+   int size = a.size();
+   SEXP val;
+   PROTECT(val = allocVector(VECSXP, size));
+   for (int i = 0; i < size; i++) SET_VECTOR_ELT(val, i, asSEXP(a[i]));
+   UNPROTECT(1);
+   return val;
+}
+
 SEXP asSEXP(const double &a)
 {
    SEXP val;
@@ -60,17 +84,6 @@ SEXP asSEXP(const int &a)
 template<class Type>
 SEXP asSEXP(const AD<Type> &a){
   return asSEXP(CppAD::Value(a));
-}
-template<template<class> class Vector, class Type>
-SEXP asSEXP(const Vector<Type> &a)
-{
-   int size = a.size();
-   SEXP val;
-   PROTECT(val = allocVector(REALSXP,size));
-   double *p = REAL(val);
-   for (int i = 0; i < size; i++) p[i] = asDouble(a[i]);
-   UNPROTECT(1);
-   return val;
 }
 
 /** \brief Construct c++-vector from SEXP object */
