@@ -231,8 +231,15 @@ Levels: d e f g h i j
 #define ADREPORT(name) objective_function::reportvector.push(name,#name);
 #define PARALLEL_REGION if(this->parallel_region())
 /** \brief Get data array from R and declare it as array<Type> */
-#define DATA_ARRAY(name) tmbutils::array<Type> name(tmbutils::asArray<Type>(	\
-	getListElement(objective_function::data,#name,&isArray)));
+#define DATA_ARRAY(name)						\
+tmbutils::array<Type> name;						\
+if (!isNull(getListElement(objective_function::parameters,#name))) {	\
+  name = objective_function::fillShape(tmbutils::asArray<Type>(		\
+         objective_function::getShape(#name,&isArray)),#name);		\
+} else {								\
+  name = tmbutils::asArray<Type>(getListElement(			\
+         objective_function::data,#name,&isArray));			\
+}
 /** \brief Get parameter array from R and declare it as array<Type> */
 #define PARAMETER_ARRAY(name) tmbutils::array<Type> name(objective_function::fillShape(tmbutils::asArray<Type>(objective_function::getShape(#name,&isArray)),#name));
 /** \brief Get data matrix from R and declare it as matrix<int> */
