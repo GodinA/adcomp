@@ -178,8 +178,15 @@ Rboolean isNumericScalar(SEXP x){
 /** \brief Get parameter scalar from R and declare it as Type */
 #define PARAMETER(name) Type name(objective_function::fillShape(asVector<Type>(objective_function::getShape(#name,&isNumericScalar)),#name)[0]);
 /** \brief Get data vector from R and declare it as vector<Type> */
-#define DATA_VECTOR(name) vector<Type> name(asVector<Type>(	\
-	getListElement(objective_function::data,#name,&isNumeric)));
+#define DATA_VECTOR(name)						\
+vector<Type> name;							\
+if (!isNull(getListElement(objective_function::parameters,#name))) {	\
+  name = objective_function::fillShape(asVector<Type>(			\
+         objective_function::getShape(#name,&isNumeric)),#name);	\
+} else {								\
+  name = asVector<Type>(getListElement(					\
+         objective_function::data,#name,&isNumeric));			\
+}
 /** \brief Get data matrix from R and declare it as matrix<Type> */
 #define DATA_MATRIX(name) matrix<Type> name(asMatrix<Type>(	\
 	getListElement(objective_function::data,#name,&isMatrix)));
