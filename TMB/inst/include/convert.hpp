@@ -29,30 +29,24 @@ SEXP asSEXP(const matrix<Type> &a)
    return val;
 }
 
-// Report vector of numeric types: AD<double>, AD<AD<double> > etc.
+// Report vector of numeric types: Make R-vector
+#define asSEXP_VECTOR_OF_NUMERIC(Type)			\
+SEXP asSEXP(const vector<Type> &a)			\
+{							\
+  int size = a.size();					\
+  SEXP val;						\
+  PROTECT(val = allocVector(REALSXP,size));		\
+  double *p = REAL(val);				\
+  for (int i = 0; i < size; i++) p[i] = asDouble(a[i]);	\
+  UNPROTECT(1);						\
+  return val;						\
+}
+asSEXP_VECTOR_OF_NUMERIC(int)
+asSEXP_VECTOR_OF_NUMERIC(double)
 template<class Type>
-SEXP asSEXP(const vector<AD<Type> > &a)
-{
-  int size = a.size();
-  SEXP val;
-  PROTECT(val = allocVector(REALSXP,size));
-  double *p = REAL(val);
-  for (int i = 0; i < size; i++) p[i] = asDouble(a[i]);
-  UNPROTECT(1);
-  return val;
-}
-// Report vector of numeric types: double
-SEXP asSEXP(const vector<double> &a)
-{
-  int size = a.size();
-  SEXP val;
-  PROTECT(val = allocVector(REALSXP,size));
-  double *p = REAL(val);
-  for (int i = 0; i < size; i++) p[i] = asDouble(a[i]);
-  UNPROTECT(1);
-  return val;
-}
-// Report vector of anything else.
+asSEXP_VECTOR_OF_NUMERIC(AD<Type>)
+#undef asSEXP_VECTOR_OF_NUMERIC
+// Report vector of anything else: Make R-list
 template<class Type>
 SEXP asSEXP(const vector<Type> &a)
 {
