@@ -88,7 +88,7 @@
 ##' @param conditional Index vector of observations that are fixed during OSA. By default the empty set.
 ##' @param discrete Are observations discrete?
 ##' @param discreteSupport Support of discrete distribution (\code{method="oneStepGeneric"} only).
-##' @param seed Randomization seed (discrete case only).
+##' @param seed Randomization seed (discrete case only). If \code{NULL} the RNG seed is untouched by this routine.
 ##' @param trace Trace progress?
 ##' @return data.frame with one step predictions
 oneStepPredict <- function(obj,
@@ -217,12 +217,18 @@ oneStepPredict <- function(obj,
     ##   * nlcdf.lower
     ##   * nlcdf.upper
     applyMethod <- function(oneStepMethod){
-        pred <- as.data.frame(t(sapply(1:length(subset), oneStepMethod)))
+        pred <- do.call("rbind", lapply(1:length(subset), oneStepMethod))
+        pred <- as.data.frame(pred)
         pred$Fx <- 1 / ( 1 + exp(pred$nlcdf.lower - pred$nlcdf.upper) )
         pred$px <- 1 / ( exp(-pred$nlcdf.lower + pred$nll) +
                          exp(-pred$nlcdf.upper + pred$nll) )
         if(discrete){
-            if(!is.null(seed)) set.seed(seed)
+            if(!is.null(seed)){
+                ## Restore RNG on exit:
+                Random.seed <- .GlobalEnv$.Random.seed
+                on.exit(.GlobalEnv$.Random.seed <- Random.seed)
+                set.seed(seed)
+            }
             U <- runif(nrow(pred))
         } else {
             U <- 0
@@ -248,7 +254,8 @@ oneStepPredict <- function(obj,
             H <- optimHess(opt$par, f, g)
             c(observation=obs[index], mean=opt$par, sd=sqrt(1/H))
         }
-        pred <- as.data.frame(t(sapply(1:length(subset), oneStepGaussian)))
+        pred <- do.call("rbind", lapply(1:length(subset), oneStepGaussian))
+        pred <- as.data.frame(pred)
         pred$residual <- (pred$observation-pred$mean)/pred$sd
     }
 
@@ -281,7 +288,6 @@ oneStepPredict <- function(obj,
         p <- newobj$par
         newobj$fn(p) ## Test eval
         obs <- as.integer(round(obs))
-        if(!is.null(seed)) set.seed(seed)
         if(is.null(discreteSupport)){
             warning("Setting 'discreteSupport' to ",min(obs),":",max(obs))
             discreteSupport <- min(obs):max(obs)
