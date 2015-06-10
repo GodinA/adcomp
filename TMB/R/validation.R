@@ -1,3 +1,96 @@
+##' Calculate one-step-ahead (OSA) residuals for a latent variable model.
+##'
+##' Given a TMB latent variable model this function calculates OSA
+##' standardized residuals that can be used for goodness-of-fit
+##' assessment. The approach is based on a factorization of the joint
+##' distribution of the \emph{observations} \eqn{X_1,...,X_n} into
+##' successive conditional distributions.
+##' Denote by
+##' \deqn{F_n(x_n) = P(X_n \leq x_n | X_1 = x_1,...,X_{n-1}=x_{n-1} )}
+##' the one-step-ahead CDF, and by
+##' \deqn{p_n(x_n) = P(X_n = x_n | X_1 = x_1,...,X_{n-1}=x_{n-1} )}
+##' the corresponding point probabilities (zero for continuous distributions).
+##' In case of continuous observations the sequence
+##' \deqn{\Phi^{-1}(F_1(X_1))\:,...,\:\Phi^{-1}(F_n(X_n))}
+##' will be iid standard normal. These are referred to as the OSA residuals.
+##' In case of discrete observations draw (unit) uniform variables
+##' \eqn{U_1,...,U_n} and construct the randomized OSA residuals
+##' \deqn{\Phi^{-1}(F_1(X_1)-U_1 p_1(X_1))\:,...,\:\Phi^{-1}(F_n(X_n)-U_n p_n(X_n))}
+##' These are also iid standard normal.
+##'
+##' The user must specify one of the following methods to calcualate
+##' the residuals:
+##' \describe{
+##' \item{fullGaussian}{
+##' This method assumes that the joint distribution of data \emph{and}
+##' random effects is Gaussian (or well approximated by a
+##' Gaussian). It does not require any changes to the user
+##' template. However, if used in conjunction with \code{subset}
+##' and/or \code{conditional} a \code{data.term.indicator} is required
+##' - see the next method.
+##' }
+##' \item{oneStepGeneric}{
+##' This method calculates the one-step probability density using the
+##' Laplace approximation. The approximation is integrated using 1D
+##' numerical quadrature to obtain the one-step CDF evaluated at each
+##' data point. The method works in the continuous case as well as the
+##' discrete case (\code{discrete=TRUE}). It requires a specification
+##' of a \code{data.term.indicator} explained in the
+##' following. Suppose the template for the observations given the
+##' random effects (\eqn{u}) looks like
+##' \preformatted{
+##'     ...
+##'     nll -= dnorm(x(i), u(i), 0.0, true);
+##'     ...
+##' }
+##' Then this template can be augmented with a
+##' \code{data.term.indicator = "keep"} by changing the template to
+##' \preformatted{
+##'     DATA_VECTOR(keep);
+##'     ...
+##'     nll -= keep(i) * dnorm(x(i), u(i), 0.0, true);
+##'     ...
+##' }
+##' Make sure to fill this new data vector (\code{keep}) with ones
+##' before passing it from \R.
+##' }
+##' \item{cdf}{
+##' The previous method can be slow due to the many function
+##' evaluations used during the 1D integration (or summation in the
+##' discrete case). The present method can speed up this process but
+##' requires even more changes to the user template. The above
+##' template must be expanded with two further indicator variables,
+##' e.g.  \code{lower.cdf.indicator = "keep1"} and
+##' \code{upper.cdf.indicator = "keep2"}, implemented as
+##' \preformatted{
+##'     DATA_VECTOR(keep);
+##'     DATA_VECTOR(keep1);
+##'     DATA_VECTOR(keep2);
+##'     ...
+##'     nll -= keep(i)  * dnorm(x(i), u(i), 0.0, true);
+##'     nll -= keep1(i) * log( pnorm(x(i), u(i), 0.0) );
+##'     nll -= keep2(i) * log( 1.0 - pnorm(x(i), u(i), 0.0) );
+##'     ...
+##' }
+##' Make sure to fill these new data vectors (\code{keep1} and
+##' \code{keep2}) with zeros before passing them from \R.
+##' }
+##' }
+##'
+##' @title Calculate one-step-ahead (OSA) residuals for a latent variable model.
+##' @param obj Output form \code{MakeADFun}.
+##' @param observation.name Character naming the observation in the template.
+##' @param data.term.indicator Character naming an indicator data variable in the template (not required by all methods - see details).
+##' @param lower.cdf.indicator Character naming an indicator data variable in the template (not required by all methods - see details).
+##' @param upper.cdf.indicator Character naming an indicator data variable in the template (not required by all methods - see details).
+##' @param method Method to calculate OSA (see details).
+##' @param subset Index vector of observations that will be added one by one during OSA. By default \code{1:length(observations)}.
+##' @param conditional Index vector of observations that are fixed during OSA. By default the empty set.
+##' @param discrete Are observations discrete?
+##' @param discreteSupport Support of discrete distribution (\code{method="oneStepGeneric"} only).
+##' @param seed Randomization seed (discrete case only).
+##' @param trace Trace progress?
+##' @return data.frame with one step predictions
 oneStepPredict <- function(obj,
                            ## Names of data objects (not all are optional)
                            observation.name = NULL,
