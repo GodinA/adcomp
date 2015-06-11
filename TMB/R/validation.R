@@ -129,8 +129,6 @@ oneStepPredict <- function(obj,
         stop("Variable lengths differ.")
     }
     method <- match.arg(method)
-    par <- obj$env$last.par.best
-    par <- par[-obj$env$random]
     obs <- as.vector(obj$env$data[[observation.name]])
     ## Check
     if(!discrete){
@@ -151,6 +149,8 @@ oneStepPredict <- function(obj,
 
     ## Args to construct copy of 'obj'
     args <- as.list(obj$env)[intersect(names(formals(MakeADFun)), ls(obj$env))]
+    ## Use the best encountered parameter for new object
+    args$parameters <- obj$env$parList(par = obj$env$last.par.best)
     ## Fix all non-random components of parameter list
     tmp <- as.logical(obj$env$par * 0)
     tmp[-obj$env$random] <- TRUE
