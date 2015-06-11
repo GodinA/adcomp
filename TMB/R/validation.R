@@ -96,6 +96,10 @@
 ##' @param seed Randomization seed (discrete case only). If \code{NULL} the RNG seed is untouched by this routine.
 ##' @param trace Trace progress?
 ##' @return \code{data.frame} with OSA residuals in column \code{residual}.
+##' @examples
+##' runExample("simple")
+##' osa <- oneStepPredict(obj, observation.name = "x")
+##' qqnorm(osa$residual); abline(0,1)
 oneStepPredict <- function(obj,
                            ## Names of data objects (not all are optional)
                            observation.name = NULL,
