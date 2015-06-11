@@ -18,10 +18,10 @@
 ##' \deqn{\Phi^{-1}(F_1(X_1)-U_1 p_1(X_1))\:,...,\:\Phi^{-1}(F_n(X_n)-U_n p_n(X_n))}
 ##' These are also iid standard normal.
 ##'
-##' The user must specify one of the following methods to calcualate
+##' The user must specify one of the following methods to calculate
 ##' the residuals:
 ##' \describe{
-##' \item{fullGaussian}{
+##' \item{method="fullGaussian"}{
 ##' This method assumes that the joint distribution of data \emph{and}
 ##' random effects is Gaussian (or well approximated by a
 ##' Gaussian). It does not require any changes to the user
@@ -29,7 +29,7 @@
 ##' and/or \code{conditional} a \code{data.term.indicator} is required
 ##' - see the next method.
 ##' }
-##' \item{oneStepGeneric}{
+##' \item{method="oneStepGeneric"}{
 ##' This method calculates the one-step probability density using the
 ##' Laplace approximation. The approximation is integrated using 1D
 ##' numerical quadrature to obtain the one-step CDF evaluated at each
@@ -54,14 +54,19 @@
 ##' Make sure to fill this new data vector (\code{keep}) with ones
 ##' before passing it from \R.
 ##' }
-##' \item{cdf}{
-##' The previous method can be slow due to the many function
+##' \item{method="oneStepGaussian"}{
+##' This is a special case of the generic method where the one step
+##' distribution is approximated by a Gaussian (and can therefore be
+##' handled more efficiently).
+##' }
+##' \item{method="cdf"}{
+##' The generic method can be slow due to the many function
 ##' evaluations used during the 1D integration (or summation in the
 ##' discrete case). The present method can speed up this process but
-##' requires even more changes to the user template. The above
-##' template must be expanded with two further indicator variables,
-##' e.g.  \code{lower.cdf.indicator = "keep1"} and
-##' \code{upper.cdf.indicator = "keep2"}, implemented as
+##' requires more changes to the user template. The above template
+##' must be expanded with two further indicator variables, e.g.
+##' \code{lower.cdf.indicator = "keep1"} and \code{upper.cdf.indicator
+##' = "keep2"}, implemented as
 ##' \preformatted{
 ##'     DATA_VECTOR(keep);
 ##'     DATA_VECTOR(keep1);
@@ -90,7 +95,7 @@
 ##' @param discreteSupport Support of discrete distribution (\code{method="oneStepGeneric"} only).
 ##' @param seed Randomization seed (discrete case only). If \code{NULL} the RNG seed is untouched by this routine.
 ##' @param trace Trace progress?
-##' @return data.frame with one step predictions
+##' @return \code{data.frame} with OSA residuals in column \code{residual}.
 oneStepPredict <- function(obj,
                            ## Names of data objects (not all are optional)
                            observation.name = NULL,
@@ -99,8 +104,8 @@ oneStepPredict <- function(obj,
                            upper.cdf.indicator = NULL,
                            method=c(
                                "fullGaussian",
-                               "oneStepGaussian",
                                "oneStepGeneric",
+                               "oneStepGaussian",
                                "cdf"),
                            subset = NULL,
                            conditional = NULL,
@@ -350,7 +355,7 @@ oneStepPredict <- function(obj,
         p <- newobj$par
         newobj$fn(p) ## Test eval
         cdf <- function(k){
-            print(k)
+            tracefun(k)
             nll <- newobj$fn(observation(k))
             nlcdf.lower <- newobj$fn(observation(k, lower.cdf = TRUE))
             nlcdf.upper <- newobj$fn(observation(k, upper.cdf = TRUE))
